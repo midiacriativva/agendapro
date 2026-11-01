@@ -1,0 +1,10 @@
+# Troque pelo domínio que você controla. Logs de acesso não são habilitados.
+SEU_DOMINIO {
+    encode gzip
+    reverse_proxy 127.0.0.1:8090
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        X-Frame-Options SAMEORIGIN
+    }
+}

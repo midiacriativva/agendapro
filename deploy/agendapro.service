@@ -1,0 +1,22 @@
+[Unit]
+Description=AgendaPro PocketBase
+After=network.target
+
+[Service]
+User=agendapro
+Group=agendapro
+WorkingDirectory=/opt/agendapro
+ExecStart=/usr/bin/node --env-file=.env scripts/start.mjs
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillMode=control-group
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/agendapro/pb_data
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

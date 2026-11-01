@@ -1,0 +1,32 @@
+(function(root){
+const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
+const dateKey=(d=new Date())=>new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+const addDays=(s,n)=>{let d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const mins=t=>Number(t.split(':')[0])*60+Number(t.split(':')[1]);
+const hhmm=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+const uid=()=>{const bytes=new Uint8Array(15);crypto.getRandomValues(bytes);return [...bytes].map(b=>'abcdefghijklmnopqrstuvwxyz0123456789'[b%36]).join('')};
+function seed(demo,branch='beauty'){
+const names=branch==='barber'?['Corte masculino','Barba completa','Corte + barba','Acabamento']:branch==='clinic'?['Limpeza de pele','Massagem relaxante','Drenagem linfática','Design de sobrancelhas']:['Corte & finalização','Coloração completa','Escova modelada','Design de sobrancelhas'];
+const professionals=demo?[{id:'p1',name:'Marina Costa',start:'08:00',end:'18:00',days:[0,1,2,3,4,5,6]},{id:'p2',name:'Julia Mendes',start:'09:00',end:'19:00',days:[0,1,2,3,4,5,6]},{id:'p3',name:'Rafael Lima',start:'08:00',end:'18:00',days:[0,1,2,3,4,5,6]}]:[];
+const services=demo?names.map((name,i)=>({id:'s'+i,name,duration:[60,90,45,30][i],price:[120,250,80,45][i],pros:i===1?['p1','p2']:['p1','p2','p3']})):[];
+professionals.forEach((p,i)=>{p.photo='assets/avatar-'+(i+1)+'.svg';p.illustrated=true;p.whatsapp=i<2?'0090000000'+i:''});
+const today=dateKey();let appointments=[];
+if(demo){['Camila Oliveira','Beatriz Santos','Lucas Ferreira','Fernanda Alves','Isabela Souza','Ana Paula','Pedro Henrique','Letícia Rocha'].forEach((client,i)=>{let s=services[i%4];appointments.push({id:uid(),client,phone:'(84) 90000-0000',service:s.id,serviceName:s.name,pro:s.pros[i%s.pros.length],date:today,time:['08:00','09:00','10:30','11:00','13:00','14:30','15:30','16:00'][i],duration:s.duration,value:s.price,source:'scheduled',review:i<3?'confirmed':'pending',audit:[],demo:true})});
+for(let m=0;m<6;m++){let d=new Date(today+'T12:00:00');d.setDate(1);d.setMonth(d.getMonth()-m);for(let i=0;i<12;i++){let key=d.toISOString().slice(0,7)+'-'+String(2+i).padStart(2,'0');if(key>=today)continue;let s=services[i%4];appointments.push({id:uid(),client:['Camila Oliveira','Ana Paula','Lucas Ferreira'][i%3],phone:'',service:s.id,serviceName:s.name,pro:'p1',date:key,time:'09:00',duration:s.duration,value:Math.round(s.price*(1+(5-m)*.1)*100)/100,source:i%4===0?'walkin':'scheduled',review:'confirmed',audit:[{who:'Marina Costa',when:key+'T20:00:00-03:00',from:'pending',to:'confirmed'}],demo:true})}}
+for(let i=1;i<=5;i++){let s=services[i%4];appointments.push({id:uid(),client:['Carolina Dias','João Oliveira','Sofia Lima'][i%3],phone:'',service:s.id,serviceName:s.name,pro:s.pros[i%s.pros.length],date:addDays(today,i),time:'10:00',duration:s.duration,value:s.price,source:'scheduled',review:'pending',audit:[],demo:true})}}
+return {schema:3,palette:{primary:'#5b3fb5',accent:'#16624b',background:'#f5f3fa'},privacyVersion:'demo-2026-10',demo,branch,name:demo?(branch==='barber'?'Barbearia Horizonte':branch==='clinic'?'Clínica Aurora':'Studio Aurora'):'Meu negócio',owner:demo?'Marina Costa':'Dono da conta',cutoff:'23:00',services,professionals,appointments,blocks:[],access:[]};}
+function effective(a,state,now=new Date()){if(a.review!=='pending')return a.review;return now>=new Date(a.date+'T'+state.cutoff+':00-03:00')?'unreviewed':'pending'}
+function available(st,serviceId,proId,date,ignoreId,now=new Date()){
+let s=st.services.find(x=>x.id===serviceId),p=st.professionals.find(x=>x.id===proId);if(!s||!p||!s.pros.includes(proId)||!p.days.includes(new Date(date+'T12:00:00').getDay()))return [];
+let out=[];for(let n=mins(p.start);n+s.duration<=mins(p.end);n+=15){let time=hhmm(n);if(new Date(date+'T'+time+':00-03:00')<=now)continue;let conflict=st.appointments.some(a=>a.id!==ignoreId&&a.pro===proId&&a.date===date&&a.review!=='cancelled'&&n<mins(a.time)+a.duration&&n+s.duration>mins(a.time));let blocked=st.blocks.some(b=>b.pro===proId&&b.date===date&&n<mins(b.end)&&n+s.duration>mins(b.start));if(!conflict&&!blocked)out.push(time)}return out}
+function revenue(st,month){const confirmed=st.appointments.filter(a=>['confirmed','other'].includes(a.review)&&a.date.startsWith(month)&&a.demo===st.demo);return {verified:confirmed.filter(a=>a.source==='scheduled').reduce((s,a)=>s+a.value,0),declared:confirmed.filter(a=>a.source==='walkin').reduce((s,a)=>s+a.value,0)}}
+function review(st,id,status,who,changes={}){let a=st.appointments.find(a=>a.id===id);if(!a)throw Error('Atendimento não encontrado');a.audit.push({who,when:new Date().toISOString(),from:effective(a,st),to:status,before:{service:a.service,value:a.value},after:{service:changes.service||a.service,value:changes.value??a.value}});Object.assign(a,changes,{review:status})}
+function luminance(hex){hex=hex.length===4?'#'+hex.slice(1).split('').map(c=>c+c).join(''):hex;const rgb=hex.replace('#','').match(/.{2}/g).map(v=>parseInt(v,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2]}
+function contrast(a,b){const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
+function textOn(color){return contrast('#ffffff',color)>=contrast('#171320',color)?'#ffffff':'#171320'}
+function readable(color,bg){return contrast(color,bg)>=4.5?color:textOn(bg)}
+function paletteIssues(p){return [{label:'Texto branco no botão primário',ratio:contrast('#ffffff',p.primary)},{label:'Texto de destaque no fundo',ratio:contrast(p.accent,p.background)},{label:'Texto principal no fundo',ratio:contrast('#262638',p.background)}].filter(x=>x.ratio<4.5)}
+function normalizePhone(value){let n=String(value||'').replace(/\D/g,'');if(n.startsWith('55')&&n.length>11)n=n.slice(2);return n}
+function whatsappUrl(pro,a){let n=normalizePhone(pro.whatsapp);if(!/^\d{10,11}$/.test(n))return '';const message='Olá, '+pro.name+'! Agendei '+a.serviceName+' para '+a.date.split('-').reverse().join('/')+' às '+a.time+'. Meu nome é '+a.client+'.';return 'https://wa.me/55'+n+'?text='+encodeURIComponent(message)}
+const api={luminance,contrast,textOn,readable,paletteIssues,normalizePhone,whatsappUrl,money,dateKey,addDays,mins,hhmm,uid,seed,effective,available,revenue,review};root.Core=api;if(typeof module!=='undefined')module.exports=api;
+})(typeof window!=='undefined'?window:globalThis);

@@ -1,0 +1,17 @@
+routerAdd('GET','/api/agendapro/policies/{scope}',e=>require(__hooks+'/lib/routes.js').policyInfo(e));
+routerAdd('POST','/api/agendapro/register',e=>require(__hooks+'/lib/routes.js').register(e));
+routerAdd('GET','/api/agendapro/me',e=>require(__hooks+'/lib/routes.js').me(e),$apis.requireAuth());
+routerAdd('POST','/api/agendapro/policy-acceptances',e=>require(__hooks+'/lib/routes.js').acceptPolicy(e),$apis.requireAuth('users'));
+routerAdd('GET','/api/agendapro/admin/overview',e=>require(__hooks+'/lib/routes.js').overview(e),$apis.requireSuperuserAuth());
+routerAdd('POST','/api/agendapro/admin/businesses/{id}/decision',e=>require(__hooks+'/lib/routes.js').decision(e),$apis.requireSuperuserAuth());
+routerAdd('GET','/api/agendapro/owner/state',e=>require(__hooks+'/lib/routes.js').ownerState(e),$apis.requireAuth('users'));
+routerAdd('PUT','/api/agendapro/owner/state',e=>require(__hooks+'/lib/routes.js').sync(e),$apis.requireAuth('users'),$apis.bodyLimit(12*1024*1024));
+routerAdd('GET','/api/agendapro/owner/revenue',e=>require(__hooks+'/lib/routes.js').revenue(e),$apis.requireAuth('users'));
+routerAdd('GET','/api/agendapro/owner/clients',e=>require(__hooks+'/lib/routes.js').clients(e),$apis.requireAuth('users'));
+routerAdd('DELETE','/api/agendapro/owner/clients/{id}',e=>require(__hooks+'/lib/routes.js').erase(e),$apis.requireAuth('users'));
+routerAdd('GET','/api/agendapro/public/{slug}',e=>require(__hooks+'/lib/routes.js').config(e));
+routerAdd('GET','/api/agendapro/public/{slug}/availability',e=>require(__hooks+'/lib/routes.js').slots(e));
+routerAdd('GET','/api/agendapro/photos/{id}',e=>require(__hooks+'/lib/routes.js').photo(e));
+routerAdd('POST','/api/agendapro/demo/open',e=>require(__hooks+'/lib/routes.js').demoOpen(e));
+routerAdd('GET','/api/agendapro/demo/state',e=>require(__hooks+'/lib/routes.js').demoState(e));
+routerAdd('PUT','/api/agendapro/demo/state',e=>require(__hooks+'/lib/routes.js').demoSave(e),$apis.bodyLimit(2*1024*1024));

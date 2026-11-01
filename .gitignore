@@ -1,0 +1,6 @@
+.env
+pb_data/
+pocketbase
+pocketbase.exe
+node_modules/
+backups/
